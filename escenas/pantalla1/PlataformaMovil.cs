@@ -4,7 +4,9 @@ namespace PrimerjuegoPlataformas2D.escenas.pantalla1;
 
 public partial class PlataformaMovil : Plataforma
 {
-    private Vector2 _posAnterior;
+    public Vector2 DeltaMovimiento { get; private set; }
+
+    private Vector2 _posicionAnterior;
 
     public Vector2 VelocidadActual { get; private set; }
 
@@ -14,35 +16,65 @@ public partial class PlataformaMovil : Plataforma
     [Export]
     public Vector2 Fin { get; set; } = Vector2.Zero;
 
-    public float Velocidad = 50f;
+    [Export]
+    public float DistanciaFrenado = 20f;
+
+    public float VelocidadMaxima = 50f;
+
+    public float Aceleracion = 30f; // Cuánto aumenta la velocidad hacia la máxima.
+
     private bool _haciaFin = true;
+    private float aceleracionActual = 0f; // Variable nueva para controlar la aceleración
+
     public override void _Ready()
     {
-        _posAnterior = GlobalPosition;
+        _posicionAnterior = GlobalPosition;
     }
 
     public override void _PhysicsProcess(double delta)
     {
         Vector2 target = _haciaFin ? Fin : Inicio;
-        Vector2 direccion = (target - Position);
+        Vector2 direccion = target - Position;
+        float distancia = direccion.Length();
 
-        if (direccion.Length() < 0.01f)
+        if (distancia < 0.01f)
         {
-            Position = target;      // Llegó al target exacto
-            _haciaFin = !_haciaFin; // Cambiamos dirección
+            // Llegamos al objetivo
+            Position = target;
+            _haciaFin = !_haciaFin;
+            aceleracionActual = 0f; // Reiniciamos aceleración al cambiar dirección
         }
         else
         {
-            Vector2 movimiento = direccion.Normalized() * Velocidad * (float)delta;
-            // Evitamos pasar del target
-            if (movimiento.Length() > direccion.Length())
+            // Aceleración gradual hasta la velocidad máxima
+            aceleracionActual += Aceleracion * (float)delta;
+            aceleracionActual = Mathf.Min(aceleracionActual, VelocidadMaxima);
+
+            float velocidad = aceleracionActual;
+
+            // Frenado suave al acercarse
+            if (distancia < DistanciaFrenado)
+            {
+                float t = Mathf.Clamp(distancia / DistanciaFrenado, 0f, 1f);
+                float factor = Mathf.SmoothStep(0f, 1f, t); // Suavizado
+                velocidad *= factor;
+                velocidad = Mathf.Max(velocidad, 10);
+            }
+
+            // Movimiento real
+            Vector2 movimiento = direccion.Normalized() * velocidad * (float)delta;
+
+            // No sobrepasar el objetivo
+            if (movimiento.Length() > distancia)
                 Position = target;
             else
                 Position += movimiento;
         }
 
-        // Velocidad por segundo
-        VelocidadActual = (Position - _posAnterior) / (float)delta;
-        _posAnterior = Position;
+        // Guardar velocidad y delta para otros sistemas
+        Vector2 posicionActual = GlobalPosition;
+        DeltaMovimiento = posicionActual - _posicionAnterior;
+        VelocidadActual = DeltaMovimiento / (float)delta;
+        _posicionAnterior = posicionActual;
     }
 }

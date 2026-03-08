@@ -16,21 +16,25 @@ public partial class Jugador : CharacterBody2D
     }
 
     public float VELOCIDAD = 130.0f;
-
     public float VELOCIDAD_SALTO = 300.0f;
+    private const float MAXIMA_VELOCIDAD_CAIDA = 350f;
 
     private int _coyoteFrames = 0;
+    private const int MAX_COYOTE_FRAMES = 6;
 
-    private const int MAX_COYOTE_FRAMES = 6; // ~0.1s si physics = 60Hz
+    private int _jumpBufferFrames = 0;
+    private const int MAX_JUMP_BUFFER = 6;
+
+    private const float ACELERACION_SUELO = 1000f;
+    private const float ACELERACION_AIRE = 500f;
+
+    private const float GRAVEDAD_EXTRA_JUMP_CUT = 2f;
 
     private AnimatedSprite2D _animatedSprite2D;
-
     public CollisionShape2D CollisionShape2D;
-
     public float Gravedad = (float)ProjectSettings.GetSetting("physics/2d/default_gravity");
 
     private SistemaPlataformas _sistemaPlataformas;
-
     public EstadoLocomocionJugador? EstadoLocomocionAnterior;
     private EstadoLocomocionJugador? _estadoLocomocion;
 
@@ -78,9 +82,6 @@ public partial class Jugador : CharacterBody2D
         GD.Print("Aterrizaje.");
     }
 
-
-    private Vector2 _velocidadPlataformaAlSaltar = Vector2.Zero;
-
     public Jugador()
     {
         _sistemaPlataformas = new SistemaPlataformas(this);
@@ -95,21 +96,21 @@ public partial class Jugador : CharacterBody2D
 
     public override void _PhysicsProcess(double delta)
     {
-        ActualizarCoyoteTime();
-
         EstadoLocomocion = CalcularEstadoLocomocion();
+        ActualizarCoyoteTime();
+        ActualizarBufferDeSalto();
 
         Vector2 velocidad = Velocity;
 
         velocidad = AplicarGravedad(delta, velocidad);
-
         velocidad = GestionarSalto(delta, velocidad);
+        velocidad = GestionarMovimiento(delta, velocidad);
 
-        velocidad = GestionarMovimiento(velocidad);
-
-        this.Velocity = velocidad;
+        Velocity = velocidad;
 
         MoveAndSlide();
+
+        EstadoLocomocion = CalcularEstadoLocomocion();
     }
 
     private void ActualizarCoyoteTime()
@@ -118,6 +119,14 @@ public partial class Jugador : CharacterBody2D
             _coyoteFrames = MAX_COYOTE_FRAMES;
         else if (_coyoteFrames > 0)
             _coyoteFrames--;
+    }
+
+    private void ActualizarBufferDeSalto()
+    {
+        if (Input.IsActionJustPressed("ui_accept"))
+            _jumpBufferFrames = MAX_JUMP_BUFFER;
+        else if (_jumpBufferFrames > 0)
+            _jumpBufferFrames--;
     }
 
     public EstadoLocomocionJugador CalcularEstadoLocomocion()
@@ -139,70 +148,51 @@ public partial class Jugador : CharacterBody2D
     private Vector2 AplicarGravedad(double delta, Vector2 velocidad)
     {
         // Aplicamos gravedad al jugador si no está en el suelo.
-
         if (!IsOnFloor())
         {
             velocidad.Y += Gravedad * (float)delta;
+            if (velocidad.Y > MAXIMA_VELOCIDAD_CAIDA)
+                velocidad.Y = MAXIMA_VELOCIDAD_CAIDA;
         }
-
         return velocidad;
     }
 
     private Vector2 GestionarSalto(double delta, Vector2 velocidad)
     {
-        if (Input.IsActionJustPressed("ui_accept") && _coyoteFrames > 0)
-        {
-            if (Input.IsActionPressed("ui_down"))
-                velocidad = _sistemaPlataformas.AtravesarPlataformasDebajo(delta, velocidad);
-            else
-                velocidad.Y = -VELOCIDAD_SALTO;
+        bool puedeSaltar = _coyoteFrames > 0;
 
-            _coyoteFrames = 0;
+        if (EstadoLocomocion != EstadoLocomocionJugador.Saltando)
+        {
+            if ((_jumpBufferFrames > 0) && puedeSaltar)
+            {
+                if (Input.IsActionPressed("ui_down"))
+                    velocidad = _sistemaPlataformas.AtravesarPlataformasDebajo(delta, velocidad);
+                else
+                    velocidad.Y = -VELOCIDAD_SALTO;
+
+                _coyoteFrames = 0;
+                _jumpBufferFrames = 0;
+            }
+        }
+        else
+        {
+            if (!Input.IsActionPressed("ui_accept") && velocidad.Y < 0)
+                velocidad.Y += Gravedad * GRAVEDAD_EXTRA_JUMP_CUT * (float)delta;
         }
 
         return velocidad;
     }
 
-    private Vector2 GestionarMovimiento(Vector2 velocidad)
+    private Vector2 GestionarMovimiento(double delta, Vector2 velocidad)
     {
         float direccion = Input.GetAxis("ui_left", "ui_right");
+        float aceleracion = IsOnFloor() ? ACELERACION_SUELO : ACELERACION_AIRE;
+        float objetivoX = direccion * VELOCIDAD;
 
-        Vector2 velocidadJugador = new Vector2(velocidad.X, velocidad.Y);
+        velocidad.X = Mathf.MoveToward(velocidad.X, objetivoX, aceleracion * (float)delta);
 
         if (direccion != 0)
-        {
-            velocidadJugador.X = direccion * VELOCIDAD;
             _animatedSprite2D.FlipH = !(direccion > 0);
-            velocidad = velocidadJugador;
-        }
-        else
-        {
-            velocidadJugador.X = Mathf.MoveToward(velocidadJugador.X, 0f, VELOCIDAD * 10);
-
-            // Obtener plataforma predominante debajo
-            PhysicsBody2D plataformaPredominante = _sistemaPlataformas.ObtenerPlataformaDebajoJugadorPredominante();
-            Vector2 velocidadPlataforma = Vector2.Zero;
-
-            if (IsOnFloor())
-            {
-                if (plataformaPredominante is PlataformaMovil plataforma)
-                {
-                    _velocidadPlataformaAlSaltar = plataforma.VelocidadActual;
-                }
-                else
-                {
-                    _velocidadPlataformaAlSaltar = Vector2.Zero;
-                }
-            }
-            else
-            {
-                // En el aire, conservamos la velocidad de la plataforma del momento del salto
-                velocidadPlataforma = _velocidadPlataformaAlSaltar;
-            }
-
-            // Velocidad final
-            velocidad = velocidadJugador + velocidadPlataforma;
-        }
 
         return velocidad;
     }
