@@ -10,9 +10,14 @@ public partial class PlataformaMovil : Plataforma
     public Vector2 VelocidadActual { get; private set; }
 
     [Export]
-    public Vector2 Inicio { get; set; } = Vector2.Zero;
+    public bool Movimiento { get; set; } = false;
+
+    public Vector2 PosicionInicial { get; set; }
+
     [Export]
-    public Vector2 Fin { get; set; } = Vector2.Zero;
+    public Vector2 PosicionA { get; set; } = Vector2.Zero;
+    [Export]
+    public Vector2 PosicionB { get; set; } = Vector2.Zero;
 
     [Export]
     public float DistanciaFrenado = 20f;
@@ -25,37 +30,40 @@ public partial class PlataformaMovil : Plataforma
     private float _aceleracionActual = 0f;
     private bool _haciaFin = true;
 
+    [Export]
+    public bool Caida { get; set; } = false;
+
+    [Export]
+    public float TiempoEsperaCaida = 1f;     // tiempo antes de caer
+    [Export]
+    public float TiempoReaparecer = 3f; // tiempo hasta reaparecer
+    [Export]
+    public float VelocidadCaida = 150f; // velocidad vertical al caer
+
     // --- Estados de la plataforma ---
     private enum EstadoPlataforma { Normal, EsperandoCaida, Cayendo, Reiniciando }
     private EstadoPlataforma _estado = EstadoPlataforma.Normal;
 
     private float _timer = 0f;
 
-    [Export]
-    public float VelocidadCaida = 150f; // velocidad vertical al caer
-    [Export]
-    public float TiempoEspera = 1f;     // tiempo antes de caer
-    [Export]
-    public float TiempoReaparecer = 3f; // tiempo hasta reaparecer
-
     private Area2D _sensorJugador;
 
     public override void _Ready()
     {
-        _posicionAnterior = GlobalPosition;
-        Position = Inicio; // asegurar posición inicial
-
+        PosicionInicial = _posicionAnterior = GlobalPosition;
         _sensorJugador = GetNode<Area2D>("SensorJugador");
-        _sensorJugador.BodyEntered += OnSensorJugadorBodyEntered;
+
+        if (Caida)
+            _sensorJugador.BodyEntered += OnSensorJugadorBodyEntered;
     }
 
     public override void _PhysicsProcess(double delta)
     {
         // Movimiento horizontal independiente
-        MoverHorizontal(delta);
+        GestionarMovimiento(delta);
 
         // Gestión de caída vertical según estado
-        GestionarEstadoCaida(delta);
+        GestionarCaida(delta);
 
         // Guardar velocidad y delta
         Vector2 posicionActual = GlobalPosition;
@@ -64,9 +72,12 @@ public partial class PlataformaMovil : Plataforma
         _posicionAnterior = posicionActual;
     }
 
-    private void MoverHorizontal(double delta)
+    private void GestionarMovimiento(double delta)
     {
-        Vector2 target = _haciaFin ? Fin : Inicio;
+        if (!Movimiento && (PosicionA == Vector2.Zero || PosicionB == Vector2.Zero))
+            return;
+
+        Vector2 target = _haciaFin ? PosicionB : PosicionA;
         Vector2 direccion = new Vector2(target.X - Position.X, 0);
         float distancia = Math.Abs(direccion.X);
 
@@ -96,8 +107,11 @@ public partial class PlataformaMovil : Plataforma
         }
     }
 
-    private void GestionarEstadoCaida(double delta)
+    private void GestionarCaida(double delta)
     {
+        if (!Caida)
+            return;
+
         switch (_estado)
         {
             case EstadoPlataforma.Normal:
@@ -106,7 +120,7 @@ public partial class PlataformaMovil : Plataforma
 
             case EstadoPlataforma.EsperandoCaida:
                 _timer += (float)delta;
-                if (_timer >= TiempoEspera)
+                if (_timer >= TiempoEsperaCaida)
                 {
                     _estado = EstadoPlataforma.Cayendo;
                     _timer = 0f;
@@ -124,7 +138,7 @@ public partial class PlataformaMovil : Plataforma
                 break;
 
             case EstadoPlataforma.Reiniciando:
-                Position = Inicio;
+                Position = PosicionInicial;
                 _estado = EstadoPlataforma.Normal;
                 _timer = 0f;
                 _aceleracionActual = 0f;
