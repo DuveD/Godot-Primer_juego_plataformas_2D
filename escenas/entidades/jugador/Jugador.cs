@@ -50,7 +50,7 @@ public partial class Jugador : CharacterBody2D
     public Area2D SensorSuelo;
     public float Gravedad = (float)ProjectSettings.GetSetting("physics/2d/default_gravity");
 
-    private SistemaPlataformas _sistemaPlataformas;
+    public SistemaPlataformas SistemaPlataformas;
     public EstadoLocomocionJugador? EstadoLocomocionAnterior;
     private EstadoLocomocionJugador? _estadoLocomocion;
 
@@ -125,8 +125,8 @@ public partial class Jugador : CharacterBody2D
         this.CollisionShape2D = GetNode<CollisionShape2D>("CollisionShape2D");
         this.SensorSuelo = GetNode<Area2D>("SensorSuelo");
 
-        _sistemaPlataformas = new SistemaPlataformas(this);
-        AddChild(_sistemaPlataformas);
+        SistemaPlataformas = new SistemaPlataformas(this);
+        AddChild(SistemaPlataformas);
 
         this.EstadoLocomocion = CalcularEstadoLocomocion(Velocity);
     }
@@ -231,7 +231,7 @@ public partial class Jugador : CharacterBody2D
     private void ActualizarCaidaRapida()
     {
         // Si estamos presionando ↓ y no estamos atravesando plataformas, activamos la caída rápida mínima
-        if (Input.IsActionPressed("ui_down") && !_sistemaPlataformas.AtravesandoPlataformas())
+        if (Input.IsActionPressed("ui_down") && !SistemaPlataformas.AtravesandoPlataformas())
             _framesCaidaRapida = FRAMES_CAIDA_RAPIDA_MIN;
 
         // Activar la caída rápida mientras queden frames
@@ -305,9 +305,9 @@ public partial class Jugador : CharacterBody2D
             {
                 if (Input.IsActionPressed("ui_down"))
                 {
-                    if (_sistemaPlataformas.HayPlataformasDebajo())
+                    if (SistemaPlataformas.HayPlataformasDebajo())
                     {
-                        velocidad = _sistemaPlataformas.AtravesarPlataformasDebajo(delta, velocidad);
+                        velocidad = SistemaPlataformas.AtravesarPlataformasDebajo(delta, velocidad);
                     }
                 }
                 else

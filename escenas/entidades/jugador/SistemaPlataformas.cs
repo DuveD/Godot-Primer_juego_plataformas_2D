@@ -49,6 +49,9 @@ public partial class SistemaPlataformas : Node
 
     public Vector2 AtravesarPlataformasDebajo(double delta, Vector2 velocidad)
     {
+        if (!this._jugador.IsOnFloor())
+            return velocidad;
+
         var plataformas = ObtenerPlataformasDebajoJugador();
         if (plataformas.Count == 0)
             return velocidad;
