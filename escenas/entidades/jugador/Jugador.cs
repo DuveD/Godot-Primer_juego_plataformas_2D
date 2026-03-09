@@ -5,6 +5,28 @@ namespace PrimerjuegoPlataformas2D.escenas.entidades.jugador;
 
 public partial class Jugador : CharacterBody2D
 {
+    public const string NOMBRE_ANIMACION_ATERRIZAR = "aterrizar";
+    public const string NOMBRE_ANIMACION_CAER = "caer";
+    public const string NOMBRE_ANIMACION_CORRER = "correr";
+    public const string NOMBRE_ANIMACION_GOLPEADO = "golpeado";
+    public const string NOMBRE_ANIMACION_IDLE = "idle";
+    public const string NOMBRE_ANIMACION_MUERTE = "muerte";
+    public const string NOMBRE_ANIMACION_RODAR = "rodar";
+    public const string NOMBRE_ANIMACION_RODANDO = "rodando";
+    public const string NOMBRE_ANIMACION_SALTAR = "saltar";
+
+    private int _framesEstadoTemporal = 0;
+    private const int FRAMES_ATERRIZAR = 6;
+
+    private const int FRAMES_RODAR = 16;          // duración del rodar
+
+    private bool _mantenerAnimacionRodar = false;
+
+    [Export]
+    public float VELOCIDAD_RODAR = 200; // velocidad horizontal durante el rodar
+
+    private float _velocidadInicialRodar = 0f;
+
     /// <summary>
     /// Describe el estado físico vertical del jugador.
     /// </summary>
@@ -12,7 +34,9 @@ public partial class Jugador : CharacterBody2D
     {
         EnSuelo,
         Saltando,
-        Cayendo
+        Cayendo,
+        Aterrizando,
+        Rodando
     }
 
     [Export]
@@ -51,73 +75,10 @@ public partial class Jugador : CharacterBody2D
     public float Gravedad = (float)ProjectSettings.GetSetting("physics/2d/default_gravity");
 
     public SistemaPlataformas SistemaPlataformas;
-    public EstadoLocomocionJugador? EstadoLocomocionAnterior;
-    private EstadoLocomocionJugador? _estadoLocomocion;
+    public EstadoLocomocionJugador EstadoLocomocionAnterior;
+    public EstadoLocomocionJugador EstadoLocomocion;
 
-    public EstadoLocomocionJugador EstadoLocomocion
-    {
-        get => _estadoLocomocion ??= CalcularEstadoLocomocion(Velocity);
-        private set
-        {
-            if (_estadoLocomocion == value)
-                return;
-
-            EstadoLocomocionAnterior = _estadoLocomocion;
-            _estadoLocomocion = value;
-
-            OnEstadoLocomocionChanged(EstadoLocomocionAnterior, value);
-        }
-    }
-
-    private void OnEstadoLocomocionChanged(EstadoLocomocionJugador? anterior, EstadoLocomocionJugador actual)
-    {
-        switch (actual)
-        {
-            case EstadoLocomocionJugador.EnSuelo:
-                GD.Print("Jugador en el suelo.");
-                break;
-
-            case EstadoLocomocionJugador.Saltando:
-                GD.Print("Jugador saltando.");
-                break;
-
-            case EstadoLocomocionJugador.Cayendo:
-                GD.Print("Jugador cayendo.");
-                break;
-        }
-
-        if (anterior == EstadoLocomocionJugador.Cayendo &&
-            actual == EstadoLocomocionJugador.EnSuelo)
-        {
-            OnAterrizar();
-        }
-    }
-
-    private void OnAterrizar()
-    {
-        GD.Print("Aterrizaje.");
-        GD.Print("");
-    }
-
-    private bool? CaidaRapida
-    {
-        get;
-        set
-        {
-            if (field == value)
-                return;
-
-            field = value;
-
-            if (value != null)
-            {
-                if (value.Value)
-                    GD.Print("Caida rápida.");
-                else
-                    GD.Print("Caida Normal.");
-            }
-        }
-    }
+    private bool? CaidaRapida;
 
     public override void _Ready()
     {
@@ -125,10 +86,12 @@ public partial class Jugador : CharacterBody2D
         this.CollisionShape2D = GetNode<CollisionShape2D>("CollisionShape2D");
         this.SensorSuelo = GetNode<Area2D>("SensorSuelo");
 
-        SistemaPlataformas = new SistemaPlataformas(this);
+        this.SistemaPlataformas = new SistemaPlataformas(this);
         AddChild(SistemaPlataformas);
 
-        this.EstadoLocomocion = CalcularEstadoLocomocion(Velocity);
+        this.EstadoLocomocion = CalcularEstadoLocomocion();
+        this.EstadoLocomocionAnterior = this.EstadoLocomocion;
+        this.ActualizarAnimacion();
     }
 
     public override void _PhysicsProcess(double delta)
@@ -139,19 +102,52 @@ public partial class Jugador : CharacterBody2D
 
         velocidad = GestionarMovimientoVertical(delta, velocidad);
         velocidad = GestionarSalto(delta, velocidad);
-        velocidad = GestionarMovimiento(delta, velocidad);
+        velocidad = GestionarMovimientoHorizontal(delta, velocidad);
 
         Velocity = velocidad;
 
         MoveAndSlide();
 
-        this.EstadoLocomocion = CalcularEstadoLocomocion(Velocity);
+        EvaluarEstadoLocomocion();
+        ActualizarAnimacion();
     }
 
     private void ActualizarInputs()
     {
+        DetectarRodar();
+
         ActualizarCoyoteTime();
         ActualizarBufferDeSalto();
+    }
+
+    private void DetectarRodar()
+    {
+        if (IsOnFloor() && Input.IsActionJustPressed("rodar"))
+        {
+            // Si no estaba rodando, o si queremos encadenar rodadas, reiniciamos el contador
+            if (EstadoLocomocion != EstadoLocomocionJugador.Rodando)
+            {
+                CambiarEstadoLocomocion(EstadoLocomocionJugador.Rodando);
+
+                // Guardamos la dirección
+                float direccionRodar = _animatedSprite2D.FlipH ? -1 : 1;
+                _velocidadInicialRodar = direccionRodar * VELOCIDAD_RODAR;
+            }
+            else
+            {
+                float direccionInput = Input.GetAxis("ui_left", "ui_right");
+                float direccionActual = _animatedSprite2D.FlipH ? -1 : 1;
+
+                if (Mathf.Sign(direccionInput) != 0 && Mathf.Sign(direccionInput) != Mathf.Sign(direccionActual))
+                {
+                    _animatedSprite2D.FlipH = direccionInput < 0;
+                    _velocidadInicialRodar = (direccionInput < 0 ? -1 : 1) * VELOCIDAD_RODAR;
+                }
+            }
+
+            // Reiniciamos duración de rodar
+            _framesEstadoTemporal = FRAMES_RODAR;
+        }
     }
 
     private void ActualizarCoyoteTime()
@@ -170,20 +166,24 @@ public partial class Jugador : CharacterBody2D
             _jumpBufferFrames--;
     }
 
-    public EstadoLocomocionJugador CalcularEstadoLocomocion(Vector2 velocidad)
+    public EstadoLocomocionJugador CalcularEstadoLocomocion()
     {
         if (IsOnFloor())
         {
+            if (EstadoLocomocion == EstadoLocomocionJugador.Cayendo)
+            {
+                return EstadoLocomocionJugador.Aterrizando;
+            }
+
             return EstadoLocomocionJugador.EnSuelo;
         }
-        else if (velocidad.Y < 0)
+
+        if (Velocity.Y < 0)
         {
             return EstadoLocomocionJugador.Saltando;
         }
-        else
-        {
-            return EstadoLocomocionJugador.Cayendo;
-        }
+
+        return EstadoLocomocionJugador.Cayendo;
     }
 
     private Vector2 GestionarMovimientoVertical(double delta, Vector2 velocidad)
@@ -208,8 +208,6 @@ public partial class Jugador : CharacterBody2D
             {
                 velocidad = FrenarSalto(delta, velocidad);
             }
-
-            this.EstadoLocomocion = CalcularEstadoLocomocion(velocidad);
         }
 
         bool bajando = velocidad.Y > 0;
@@ -329,9 +327,17 @@ public partial class Jugador : CharacterBody2D
         return velocidad;
     }
 
-    private Vector2 GestionarMovimiento(double delta, Vector2 velocidad)
+    private Vector2 GestionarMovimientoHorizontal(double delta, Vector2 velocidad)
     {
         float direccion = Input.GetAxis("ui_left", "ui_right");
+
+        if (_mantenerAnimacionRodar)
+        {
+            // Mantener velocidad de rodar aunque cambie el estado
+            velocidad.X = _velocidadInicialRodar;
+            return velocidad; // ignorar input
+        }
+
         float aceleracion = IsOnFloor() ? ACELERACION_SUELO : ACELERACION_AIRE;
 
         if (EstadoLocomocion == EstadoLocomocionJugador.Saltando && Mathf.Abs(Velocity.Y) < UMBRAL_APEX)
@@ -356,5 +362,139 @@ public partial class Jugador : CharacterBody2D
             _animatedSprite2D.FlipH = direccion < 0;
 
         return velocidad;
+    }
+
+    private void CambiarEstadoLocomocion(EstadoLocomocionJugador nuevoEstado)
+    {
+        EstadoLocomocionAnterior = EstadoLocomocion;
+
+        if (EstadoLocomocion == nuevoEstado)
+            return;
+
+        EstadoLocomocion = nuevoEstado;
+
+        OnEstadoLocomocionChanged(EstadoLocomocionAnterior, nuevoEstado);
+    }
+
+    private void EvaluarEstadoLocomocion()
+    {
+        // Reducimos contador si estamos en un estado temporal
+        if (_framesEstadoTemporal > 0)
+        {
+            _framesEstadoTemporal--;
+            if (_framesEstadoTemporal == 0)
+            {
+                // Al terminar la duración, pasar a estado normal
+                if (EstadoLocomocion == EstadoLocomocionJugador.Aterrizando)
+                {
+                    CambiarEstadoLocomocion(EstadoLocomocionJugador.EnSuelo);
+                }
+            }
+
+            return; // Mientras dure el estado temporal, no evaluamos otro cambio
+        }
+
+        var nuevoEstado = CalcularEstadoLocomocion();
+
+        // Iniciar estados temporales con contador
+        if (nuevoEstado == EstadoLocomocionJugador.Aterrizando)
+        {
+            _framesEstadoTemporal = FRAMES_ATERRIZAR;
+        }
+
+        CambiarEstadoLocomocion(nuevoEstado);
+    }
+
+    private void OnEstadoLocomocionChanged(EstadoLocomocionJugador anterior, EstadoLocomocionJugador actual)
+    {
+        if (anterior == EstadoLocomocionJugador.Cayendo &&
+            actual == EstadoLocomocionJugador.Aterrizando)
+        {
+            OnAterrizar();
+        }
+
+        if (anterior == EstadoLocomocionJugador.EnSuelo &&
+            actual == EstadoLocomocionJugador.Saltando)
+        {
+            OnDespegar();
+        }
+
+        switch (actual)
+        {
+            case EstadoLocomocionJugador.EnSuelo:
+                _mantenerAnimacionRodar = false;
+                GD.Print("Jugador en el suelo.");
+                break;
+
+            case EstadoLocomocionJugador.Saltando:
+                GD.Print("Jugador saltando.");
+                break;
+
+            case EstadoLocomocionJugador.Cayendo:
+                GD.Print("Jugador cayendo.");
+                break;
+
+            case EstadoLocomocionJugador.Aterrizando:
+                GD.Print("Jugador Aterrizando.");
+                break;
+
+            case EstadoLocomocionJugador.Rodando:
+                GD.Print("Jugador rodando.");
+                _mantenerAnimacionRodar = true;
+                break;
+        }
+    }
+
+    private void OnAterrizar()
+    {
+        GD.Print("Aterrizando.");
+    }
+
+    private void OnDespegar()
+    {
+        GD.Print("Despegando.");
+    }
+
+    private void ActualizarAnimacion()
+    {
+        switch (EstadoLocomocion)
+        {
+            case EstadoLocomocionJugador.EnSuelo:
+                ReproducirAnimacion(Mathf.Abs(Velocity.X) > 5f ? NOMBRE_ANIMACION_CORRER : NOMBRE_ANIMACION_IDLE);
+                break;
+
+            case EstadoLocomocionJugador.Saltando:
+                if (_mantenerAnimacionRodar)
+                    ReproducirAnimacion(NOMBRE_ANIMACION_RODANDO, true);
+                else
+                    ReproducirAnimacion(NOMBRE_ANIMACION_SALTAR);
+                break;
+
+            case EstadoLocomocionJugador.Cayendo:
+                if (_mantenerAnimacionRodar)
+                    ReproducirAnimacion(NOMBRE_ANIMACION_RODANDO, true);
+                else
+                    ReproducirAnimacion(NOMBRE_ANIMACION_CAER);
+                break;
+
+            case EstadoLocomocionJugador.Aterrizando:
+                ReproducirAnimacion(NOMBRE_ANIMACION_ATERRIZAR); // nueva animación
+                break;
+
+            case EstadoLocomocionJugador.Rodando:
+                if (_mantenerAnimacionRodar)
+                    ReproducirAnimacion(NOMBRE_ANIMACION_RODANDO, true);
+                else
+                    ReproducirAnimacion(NOMBRE_ANIMACION_RODAR, true);
+                break;
+        }
+    }
+
+    private void ReproducirAnimacion(string nombreAnimacion, bool forzarReproducir = false)
+    {
+        if (_animatedSprite2D.Animation == nombreAnimacion && !forzarReproducir)
+            return;
+
+        _animatedSprite2D.Play(nombreAnimacion);
     }
 }
