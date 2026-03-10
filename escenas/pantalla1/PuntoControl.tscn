@@ -1,0 +1,22 @@
+[gd_scene format=3 uid="uid://dpqxpve5euv4d"]
+
+[ext_resource type="Script" uid="uid://dtkdaegkmtnxu" path="res://escenas/pantalla1/PuntoControl.cs" id="1_1x7st"]
+[ext_resource type="Texture2D" uid="uid://c4avgjwjec546" path="res://recursos/sprites/mundo/mundo_tileset.png" id="1_l2uso"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_ilur8"]
+size = Vector2(16, 16)
+
+[node name="PuntoControl" type="Marker2D" unique_id=302288010]
+script = ExtResource("1_1x7st")
+
+[node name="Area2D" type="Area2D" parent="." unique_id=480066271]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Area2D" unique_id=852917073]
+position = Vector2(0, -8)
+shape = SubResource("RectangleShape2D_ilur8")
+
+[node name="Sprite2D" type="Sprite2D" parent="." unique_id=1216706036]
+position = Vector2(0, -7)
+texture = ExtResource("1_l2uso")
+region_enabled = true
+region_rect = Rect2(129, 50, 14, 14)

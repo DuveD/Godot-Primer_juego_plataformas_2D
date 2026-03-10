@@ -1,5 +1,6 @@
 using System;
 using Godot;
+using PrimerjuegoPlataformas2D.escenas.pantalla1;
 
 namespace PrimerjuegoPlataformas2D.escenas.entidades.jugador;
 
@@ -112,6 +113,8 @@ public partial class Jugador : CharacterBody2D
             }
         }
     }
+
+    PuntoControl UltimoPuntoControl = null;
 
     public override void _Ready()
     {
@@ -552,5 +555,10 @@ public partial class Jugador : CharacterBody2D
             return;
 
         _animatedSprite2D.Play(animacionJugador.Nombre);
+    }
+
+    public void InformarUltimoPuntoControl(PuntoControl puntoControl)
+    {
+        this.UltimoPuntoControl = puntoControl;
     }
 }

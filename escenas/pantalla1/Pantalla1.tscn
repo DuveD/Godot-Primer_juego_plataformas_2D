@@ -3,6 +3,7 @@
 [ext_resource type="PackedScene" uid="uid://ktccjb3bw8o2" path="res://escenas/entidades/jugador/Jugador.tscn" id="1_x781s"]
 [ext_resource type="Texture2D" uid="uid://c4avgjwjec546" path="res://recursos/sprites/mundo/mundo_tileset.png" id="2_pa6up"]
 [ext_resource type="PackedScene" uid="uid://b0652biokeqhd" path="res://escenas/pantalla1/PlataformaMovil.tscn" id="4_hgoh6"]
+[ext_resource type="PackedScene" uid="uid://dpqxpve5euv4d" path="res://escenas/pantalla1/PuntoControl.tscn" id="5_ilur8"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_k2xlr"]
 texture = ExtResource("2_pa6up")
@@ -154,7 +155,7 @@ size = Vector2(16, 0.5)
 [node name="Pantalla1" type="Node2D" unique_id=787986626]
 
 [node name="Jugador" parent="." unique_id=892271509 instance=ExtResource("1_x781s")]
-position = Vector2(-224, 0)
+position = Vector2(-216, -80)
 slide_on_ceiling = false
 
 [node name="Camera2D" type="Camera2D" parent="Jugador" unique_id=706114990]
@@ -177,7 +178,7 @@ tile_set = SubResource("TileSet_itltq")
 
 [node name="DecoracionDetras" type="TileMapLayer" parent="Isla1" unique_id=964529989]
 z_index = -10
-tile_map_data = PackedByteArray("AAAGAPz/AgACAAQAAAAGAP3/AgACAAUAAAAGAP7/AgACAAYAAAAHAPz/AgADAAQAAAAHAP3/AgADAAUAAAAHAP7/AgADAAYAAAAHAP//AgADAAcAAAAHAAAAAgADAAgAAAAIAPz/AgAEAAQAAAAIAP3/AgAEAAUAAAAIAP7/AgAEAAYAAAD///3/AgACAAQAAAD///7/AgACAAUAAAAAAP3/AgADAAQAAAAAAP7/AgADAAUAAAAAAAAAAgADAAcAAAABAP3/AgAEAAQAAAABAP7/AgAEAAUAAAABAP//AgAEAAYAAAD8//3/AgACAAQAAAD8//7/AgACAAUAAAD9//3/AgADAAQAAAD9//7/AgADAAUAAAD9/wAAAgADAAcAAAD+//3/AgAEAAQAAAD+//7/AgAEAAUAAAD+////AgAEAAYAAAD9////AgADAAYAAAAAAP//AgADAAYAAAD/////AgACAAYAAAD8////AgACAAYAAAD1//7/AgADAAQAAAD1////AgADAAUAAAD2//7/AgAEAAQAAAD2////AgAEAAUAAAD3//7/AgACAAUAAAD3////AgACAAYAAAD4//3/AgADAAQAAAD4//7/AgADAAUAAAD4////AgADAAYAAAD0//7/AgACAAQAAAD0////AgACAAUAAAD1/wAAAgADAAYAAAD3//3/AgACAAQAAAD4/wAAAgADAAcAAAD5//3/AgAEAAQAAAD5//7/AgAEAAUAAAD5////AgAEAAYAAADy////AgABAAQAAAA=")
+tile_map_data = PackedByteArray("AAAGAPz/AgACAAQAAAAGAP3/AgACAAUAAAAGAP7/AgACAAYAAAAHAPz/AgADAAQAAAAHAP3/AgADAAUAAAAHAP7/AgADAAYAAAAHAP//AgADAAcAAAAHAAAAAgADAAgAAAAIAPz/AgAEAAQAAAAIAP3/AgAEAAUAAAAIAP7/AgAEAAYAAAD///3/AgACAAQAAAD///7/AgACAAUAAAAAAP3/AgADAAQAAAAAAP7/AgADAAUAAAAAAAAAAgADAAcAAAABAP3/AgAEAAQAAAABAP7/AgAEAAUAAAABAP//AgAEAAYAAAD8//3/AgACAAQAAAD8//7/AgACAAUAAAD9//3/AgADAAQAAAD9//7/AgADAAUAAAD9/wAAAgADAAcAAAD+//3/AgAEAAQAAAD+//7/AgAEAAUAAAD+////AgAEAAYAAAD9////AgADAAYAAAAAAP//AgADAAYAAAD/////AgACAAYAAAD8////AgACAAYAAAD1//7/AgADAAQAAAD1////AgADAAUAAAD2//7/AgAEAAQAAAD2////AgAEAAUAAAD3//7/AgACAAUAAAD3////AgACAAYAAAD4//3/AgADAAQAAAD4//7/AgADAAUAAAD4////AgADAAYAAAD0//7/AgACAAQAAAD0////AgACAAUAAAD1/wAAAgADAAYAAAD3//3/AgACAAQAAAD4/wAAAgADAAcAAAD5//3/AgAEAAQAAAD5//7/AgAEAAUAAAD5////AgAEAAYAAAA=")
 tile_set = SubResource("TileSet_itltq")
 
 [node name="DecoracionDelante" type="TileMapLayer" parent="Isla1" unique_id=549484915]
@@ -370,6 +371,12 @@ Caida = true
 
 [node name="Sprite2D" parent="PlataformaCaida10" index="0" unique_id=649151839]
 region_rect = Rect2(16, 16.28695, 32, 8.713051)
+
+[node name="PuntoControl" parent="." unique_id=1696714220 instance=ExtResource("5_ilur8")]
+position = Vector2(1000, 32)
+
+[node name="PuntoControl2" parent="." unique_id=302288010 instance=ExtResource("5_ilur8")]
+position = Vector2(-216, 0)
 
 [editable path="PlataformaMovil2"]
 [editable path="PlataformaCaida4"]
