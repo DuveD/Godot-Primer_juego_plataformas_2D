@@ -64,6 +64,7 @@ public partial class Jugador : CharacterBody2D
     public float Gravedad = (float)ProjectSettings.GetSetting("physics/2d/default_gravity");
 
     bool _enSuelo = false;
+    bool _enPared = false;
 
     #region Inputs
     private struct InputJugador
@@ -121,8 +122,10 @@ public partial class Jugador : CharacterBody2D
         this.SistemaPlataformas = new SistemaPlataformas(this);
         AddChild(SistemaPlataformas);
 
+        InputJugador inputJugador = ActualizarInputs();
+
         EvaluarEstadoLocomocion();
-        this.ActualizarAnimacion();
+        this.ActualizarAnimacion(inputJugador);
     }
 
     public override void _PhysicsProcess(double delta)
@@ -139,7 +142,7 @@ public partial class Jugador : CharacterBody2D
         MoveAndSlide();
 
         EvaluarEstadoLocomocion();
-        ActualizarAnimacion();
+        ActualizarAnimacion(inputJugador);
     }
 
     private InputJugador ActualizarInputs()
@@ -402,6 +405,7 @@ public partial class Jugador : CharacterBody2D
     private void EvaluarEstadoLocomocion()
     {
         _enSuelo = IsOnFloor();
+        _enPared = IsOnWall();
 
         // Reducimos contador si estamos en un estado temporal
         if (_framesEstadoTemporal > 0)
@@ -488,12 +492,12 @@ public partial class Jugador : CharacterBody2D
         _mantenerRodar = true;
     }
 
-    private void ActualizarAnimacion()
+    private void ActualizarAnimacion(InputJugador inputJugador)
     {
         switch (EstadoLocomocion)
         {
             case EstadoLocomocionJugador.EnSuelo:
-                ActualizarAnimacionEnSuelo();
+                ActualizarAnimacionEnSuelo(inputJugador);
                 break;
 
             case EstadoLocomocionJugador.Saltando:
@@ -510,9 +514,9 @@ public partial class Jugador : CharacterBody2D
         }
     }
 
-    private void ActualizarAnimacionEnSuelo()
+    private void ActualizarAnimacionEnSuelo(InputJugador inputJugador)
     {
-        if (Mathf.Abs(Velocity.X) > 0f)
+        if (inputJugador.Direccion != 0 && !IsOnWall())
             ReproducirAnimacion(AnimacionJugador.Correr);
         else
             ReproducirAnimacion(AnimacionJugador.Idle);

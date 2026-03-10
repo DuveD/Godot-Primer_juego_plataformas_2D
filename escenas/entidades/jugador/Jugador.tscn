@@ -354,7 +354,7 @@ size = Vector2(10, 4)
 script = ExtResource("1_rk7g7")
 
 [node name="AnimatedSprite2D" type="AnimatedSprite2D" parent="." unique_id=601074081]
-position = Vector2(-1, -12)
+position = Vector2(0, -12)
 sprite_frames = SubResource("SpriteFrames_a0tr0")
 animation = &"idle"
 autoplay = "idle"
