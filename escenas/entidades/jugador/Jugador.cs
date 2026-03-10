@@ -19,6 +19,8 @@ public partial class Jugador : CharacterBody2D
 
     private int _framesEstadoTemporal = 0;
 
+    [Export]
+    public Marker2D PuntoSpawn = null;
 
     [Export]
     public float Velocidad = 130f;
@@ -113,8 +115,6 @@ public partial class Jugador : CharacterBody2D
             }
         }
     }
-
-    PuntoControl UltimoPuntoControl = null;
 
     public override void _Ready()
     {
@@ -557,8 +557,8 @@ public partial class Jugador : CharacterBody2D
         _animatedSprite2D.Play(animacionJugador.Nombre);
     }
 
-    public void InformarUltimoPuntoControl(PuntoControl puntoControl)
+    public void InformarPuntoSpawn(Marker2D marker2D)
     {
-        this.UltimoPuntoControl = puntoControl;
+        this.PuntoSpawn = marker2D;
     }
 }

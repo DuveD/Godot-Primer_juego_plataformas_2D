@@ -1,6 +1,6 @@
+using System;
 using Godot;
 using PrimerjuegoPlataformas2D.escenas.entidades.jugador;
-using System;
 
 namespace PrimerjuegoPlataformas2D.escenas.pantalla1;
 
@@ -12,6 +12,7 @@ public partial class PuntoControl : Marker2D
 	private Sprite2D _sprite2D;
 
 	// Called when the node enters the scene tree for the first time.
+
 	public override void _Ready()
 	{
 		_area2D = GetNode<Area2D>("Area2D");
@@ -20,6 +21,7 @@ public partial class PuntoControl : Marker2D
 	}
 
 	// Called every frame. 'delta' is the elapsed time since the previous frame.
+
 	public override void _Process(double delta)
 	{
 	}
@@ -35,7 +37,7 @@ public partial class PuntoControl : Marker2D
 		if (_activado)
 			return;
 
-		jugador.InformarUltimoPuntoControl(this);
+		jugador.InformarPuntoSpawn(this);
 		_activado = true;
 
 		ActivarAnimacion();
@@ -60,6 +62,7 @@ public partial class PuntoControl : Marker2D
 			);
 
 			duracion *= 1.5f; // cada vuelta más lenta
+
 		}
 	}
 }

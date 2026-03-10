@@ -154,9 +154,13 @@ size = Vector2(16, 0.5)
 
 [node name="Pantalla1" type="Node2D" unique_id=787986626]
 
-[node name="Jugador" parent="." unique_id=892271509 instance=ExtResource("1_x781s")]
+[node name="PuntoSpawnInicial" type="Marker2D" parent="." unique_id=1162242194]
+position = Vector2(-216, -80)
+
+[node name="Jugador" parent="." unique_id=892271509 node_paths=PackedStringArray("PuntoSpawn") instance=ExtResource("1_x781s")]
 position = Vector2(-216, -80)
 slide_on_ceiling = false
+PuntoSpawn = NodePath("../PuntoSpawnInicial")
 
 [node name="Camera2D" type="Camera2D" parent="Jugador" unique_id=706114990]
 position = Vector2(0, -8)
