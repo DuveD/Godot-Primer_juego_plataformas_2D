@@ -1,5 +1,6 @@
 [gd_scene format=4 uid="uid://c1j5nkhugw61n"]
 
+[ext_resource type="Texture2D" uid="uid://bpvka3mlq3k7v" path="res://recursos/imagenes/fondo/sky.png" id="1_ak48n"]
 [ext_resource type="PackedScene" uid="uid://ktccjb3bw8o2" path="res://escenas/entidades/jugador/Jugador.tscn" id="1_x781s"]
 [ext_resource type="Texture2D" uid="uid://c4avgjwjec546" path="res://recursos/sprites/mundo/mundo_tileset.png" id="2_pa6up"]
 [ext_resource type="PackedScene" uid="uid://b0652biokeqhd" path="res://escenas/pantalla1/PlataformaMovil.tscn" id="4_hgoh6"]
@@ -158,12 +159,13 @@ size = Vector2(3760, 610)
 
 [node name="Pantalla1" type="Node2D" unique_id=787986626]
 
-[node name="ColorRect" type="ColorRect" parent="." unique_id=1019327731]
+[node name="TextureRect" type="TextureRect" parent="." unique_id=1435486771]
 z_index = -100
 offset_left = -1312.0
 offset_top = -864.0
-offset_right = 2448.0
-offset_bottom = 1176.0
+offset_right = 2300.4443
+offset_bottom = 1168.0
+texture = ExtResource("1_ak48n")
 
 [node name="PuntoSpawnInicial" type="Marker2D" parent="." unique_id=1162242194]
 position = Vector2(-216, -80)

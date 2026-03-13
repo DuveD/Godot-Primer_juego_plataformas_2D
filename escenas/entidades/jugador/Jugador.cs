@@ -607,14 +607,39 @@ public partial class Jugador : CharacterBody2D
     {
         this.PuntoSpawn = marker2D;
     }
-
     public async void OnMuerte()
     {
+        if (Muerto)
+            return;
+
         Muerto = true;
+        this.Velocity = Vector2.Zero;
+        this.Rodando = false;
+
         ReproducirAnimacion(AnimacionJugador.MuerteEnCaida);
+
         await this.ToSignal(this.GetTree(), SceneTree.SignalName.ProcessFrame);
-        await Task.Delay(1000);
-        this.Position = this.PuntoSpawn.Position;
+
+        // Efecto Mario: arco hacia arriba luego caída libre
+        float tiempoTotal = 1.5f;
+        float velocidadInicial = -400f; // negativo = arriba en Godot
+        float gravedad = 600f;
+        float tiempo = 0f;
+        Vector2 posInicial = Position;
+
+        while (tiempo < tiempoTotal)
+        {
+            float dt = (float)this.GetProcessDeltaTime();
+            tiempo += dt;
+
+            float y = posInicial.Y + velocidadInicial * tiempo + 0.5f * gravedad * tiempo * tiempo;
+            Position = new Vector2(posInicial.X, y);
+
+            await this.ToSignal(this.GetTree(), SceneTree.SignalName.ProcessFrame);
+        }
+
+        // Reposicionar y revivir
+        Position = PuntoSpawn.Position;
         Muerto = false;
     }
 }
