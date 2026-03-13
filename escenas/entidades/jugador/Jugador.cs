@@ -1,125 +1,72 @@
-using System;
 using System.Threading.Tasks;
 using Godot;
-using PrimerjuegoPlataformas2D.escenas.pantalla1;
 
 namespace PrimerjuegoPlataformas2D.escenas.entidades.jugador;
 
 public partial class Jugador : CharacterBody2D
 {
-    /// <summary>
-    /// Describe el estado físico vertical del jugador.
-    /// </summary>
-    public enum EstadoLocomocionJugador
-    {
-        EnSuelo,
-        Saltando,
-        Cayendo
-    }
+    #region Nodos
+    private AnimatedSprite2D _animatedSprite2D;
+    public CollisionShape2D CollisionShape2D;
+    public Area2D SensorSuelo;
+    private Camera2D _camera2D;
+    public SistemaPlataformas SistemaPlataformas;
+    #endregion
 
-    public bool Muerto = false;
-
-    private int _framesEstadoTemporal = 0;
-
+    #region Spawn
     [Export]
     public Marker2D PuntoSpawn = null;
+    #endregion
+
+    #region Físicas
+    public float Gravedad = (float)ProjectSettings.GetSetting("physics/2d/default_gravity");
 
     [Export]
     public float VELOCIDAD = 130f;
-
     [Export]
-    public float VALOCIDAD_SALTO = 320.0f;
-
+    public float VELOCIDAD_SALTO = 320.0f;
     [Export]
     public float MAXIMA_VELOCIDAD_CAIDA = 350f;
 
-    private const float MULTIPLICADOR_CAIDA = 1.8f;
-    private const float MULTIPLICADOR_CAIDA_RAPIDA = 2.5f;
+    private const float ACELERACION_SUELO = 1000f;
+    private const float ACELERACION_AIRE = 500f;
+    #endregion
 
+    #region Estado de locomoción
+    /// <summary>
+    /// Describe el estado físico vertical del jugador.
+    /// </summary>
+    public enum EstadoLocomocionJugador { EnSuelo, Saltando, Cayendo }
+
+    public EstadoLocomocionJugador EstadoLocomocionAnterior = EstadoLocomocionJugador.EnSuelo;
+    public EstadoLocomocionJugador EstadoLocomocion = EstadoLocomocionJugador.EnSuelo;
+
+    private int _framesEstadoTemporal = 0;
+
+    bool _enSuelo = false;
+    bool _enPared = false;
+    #endregion
+
+    #region Salto
     private int _coyoteFrames = 0;
     private const int MAX_COYOTE_FRAMES = 10;
 
     private int _jumpBufferFrames = 0;
     private const int MAX_JUMP_BUFFER = 6;
 
-    private const float ACELERACION_SUELO = 1000f;
-    private const float ACELERACION_AIRE = 500f;
-
     private const float GRAVEDAD_EXTRA_CORTE_SALTO = 2f;
 
     private const float UMBRAL_APEX = 40f;
     private const float MULTIPLICADOR_CONTROL_APEX = 1.5f;
     private const float MULTIPLICADOR_GRAVEDAD_APEX = 0.5f;
+    #endregion
+
+    #region Caída
+    private const float MULTIPLICADOR_CAIDA = 1.8f;
+    private const float MULTIPLICADOR_CAIDA_RAPIDA = 2.5f;
 
     private int _framesCaidaRapida = 0;
     private const int FRAMES_CAIDA_RAPIDA_MIN = 2;
-
-    #region Rodar
-    private int _framesRodando = 0;
-    private const int FRAMES_RODAR = 16;          // duración del rodar
-
-    private bool _rodandoAnterior = false;
-    public bool Rodando
-    {
-        get;
-        set
-        {
-            if (field == value)
-                return;
-
-            field = value;
-
-            if (value)
-            {
-                OnRodando();
-            }
-            else
-            {
-                OnDejarRodar();
-            }
-        }
-    }
-
-    [Export]
-    public float VelocidadRodar = 200; // velocidad horizontal durante el rodar
-
-    private float _velocidadInicialRodar = 0f;
-    #endregion
-
-    private AnimatedSprite2D _animatedSprite2D;
-    public CollisionShape2D CollisionShape2D;
-    public Area2D SensorSuelo;
-    public float Gravedad = (float)ProjectSettings.GetSetting("physics/2d/default_gravity");
-
-    bool _enSuelo = false;
-    bool _enPared = false;
-
-    #region Inputs
-    private struct InputJugador
-    {
-        public float Direccion;
-        public bool SaltoPresionado;
-        public bool SaltoMantenido;
-        public bool Rodar;
-        public bool Abajo;
-    }
-
-    private InputJugador LeerInput()
-    {
-        return new InputJugador
-        {
-            Direccion = Input.GetAxis("ui_left", "ui_right"),
-            SaltoPresionado = Input.IsActionJustPressed("ui_accept"),
-            SaltoMantenido = Input.IsActionPressed("ui_accept"),
-            Rodar = Input.IsActionJustPressed("rodar"),
-            Abajo = Input.IsActionPressed("ui_down")
-        };
-    }
-    #endregion
-
-    public SistemaPlataformas SistemaPlataformas;
-    public EstadoLocomocionJugador EstadoLocomocionAnterior = EstadoLocomocionJugador.EnSuelo;
-    public EstadoLocomocionJugador EstadoLocomocion = EstadoLocomocionJugador.EnSuelo;
 
     public bool? CaidaRapida
     {
@@ -140,25 +87,69 @@ public partial class Jugador : CharacterBody2D
             }
         }
     }
+    #endregion
+
+    #region Rodar
+    [Export] public float VelocidadRodar = 200f;
+
+    private int _framesRodando = 0;
+    private const int FRAMES_RODAR = 16;
+
+    private bool _rodandoIniciado = false;
+    private float _velocidadInicialRodar = 0f;
+
+    public bool Rodando
+    {
+        get;
+        set
+        {
+            if (field == value)
+                return;
+
+            field = value;
+            if (value)
+                OnRodando();
+            else
+                OnDejarRodar();
+        }
+    }
+    #endregion
+
+    #region Inputs
+    private struct InputJugador
+    {
+        public float Direccion;
+        public bool SaltoPresionado;
+        public bool SaltoMantenido;
+        public bool Rodar;
+        public bool Abajo;
+    }
+    #endregion
+
+    #region Muerte
+    public bool DesactivarFisicas = false;
+
+    private const float DISTANCIA_SUPERIOR_ANIMACION_MUERTE = 80f;
+    private const float DISTANCIA_FINAL_ANIMACION_MUERTE = 600f;
+    private const float VELOCIDAD_SUBIDA_MUERTE = 200f;
+    private const float VELOCIDAD_BAJADA_MUERTE = 600f;
+    #endregion
 
     public override void _Ready()
     {
         this._animatedSprite2D = GetNode<AnimatedSprite2D>("AnimatedSprite2D");
         this.CollisionShape2D = GetNode<CollisionShape2D>("CollisionShape2D");
         this.SensorSuelo = GetNode<Area2D>("SensorSuelo");
+        this._camera2D = GetNode<Camera2D>("Camera2D");
 
         this.SistemaPlataformas = new SistemaPlataformas(this);
         AddChild(SistemaPlataformas);
-
-        InputJugador inputJugador = ActualizarInputs();
-
-        EvaluarEstadoLocomocion();
-        this.ActualizarAnimacion(inputJugador);
     }
 
     public override void _PhysicsProcess(double delta)
     {
-        if (Muerto)
+        // Si están desactivadas las físicas del jugador, no procesamos nada.
+        if (DesactivarFisicas)
             return;
 
         Vector2 velocidad = Velocity;
@@ -184,6 +175,18 @@ public partial class Jugador : CharacterBody2D
         ActualizarBufferDeSalto(inputJugador);
 
         return inputJugador;
+    }
+
+    private InputJugador LeerInput()
+    {
+        return new InputJugador
+        {
+            Direccion = Input.GetAxis("ui_left", "ui_right"),
+            SaltoPresionado = Input.IsActionJustPressed("ui_accept"),
+            SaltoMantenido = Input.IsActionPressed("ui_accept"),
+            Rodar = Input.IsActionJustPressed("rodar"),
+            Abajo = Input.IsActionPressed("ui_down")
+        };
     }
 
     private void ActualizarCoyoteTime()
@@ -221,11 +224,6 @@ public partial class Jugador : CharacterBody2D
     {
         // Procesamos el salto.
         velocidad = ProcesarSalto(delta, velocidad, inputJugador);
-
-        // Al procesar el salto, la velocidad puede quedar en positivo por la frenada.
-        bool cayendo = velocidad.Y > 0;
-        if (cayendo && EstadoLocomocion != EstadoLocomocionJugador.Cayendo)
-            CambiarEstadoLocomocion(EstadoLocomocionJugador.Cayendo);
 
         // Aplicamos la gravedad.
         velocidad = AplicarGravedad(delta, velocidad, inputJugador);
@@ -317,7 +315,7 @@ public partial class Jugador : CharacterBody2D
                 else
                 {
                     velocidad.Y = Mathf.Min(velocidad.Y, 0);
-                    velocidad.Y -= VALOCIDAD_SALTO;
+                    velocidad.Y -= VELOCIDAD_SALTO;
                 }
 
                 _coyoteFrames = 0;
@@ -387,7 +385,7 @@ public partial class Jugador : CharacterBody2D
 
         // Después del primer frame cambiamos a la animación loop
         if (_framesRodando < FRAMES_RODAR - 1)
-            _rodandoAnterior = true;
+            _rodandoIniciado = true;
 
         if (_framesRodando <= 0 && _enSuelo)
             Rodando = false;
@@ -396,7 +394,7 @@ public partial class Jugador : CharacterBody2D
     private void IniciarRodar()
     {
         Rodando = true;
-        _rodandoAnterior = false;
+        _rodandoIniciado = false;
         _velocidadInicialRodar = ObtenerDireccionActual() * VelocidadRodar;
         _framesRodando = FRAMES_RODAR;
     }
@@ -409,22 +407,16 @@ public partial class Jugador : CharacterBody2D
     private void OnDejarRodar()
     {
         GD.Print("Jugador dejar de rodar.");
-        _rodandoAnterior = false;
+        _rodandoIniciado = false;
     }
 
     private void CambioDireccionRodar(Vector2 velocidad, InputJugador inputJugador)
     {
-        _rodandoAnterior = true;
+        _rodandoIniciado = true;
 
-        float direccion = inputJugador.Direccion;
-        if (direccion == 0 || !_enSuelo)
-        {
-            direccion = Mathf.Sign(_velocidadInicialRodar);
-        }
-        else if (direccion != 0 && ObtenerDireccionActual() != direccion)
-        {
-            direccion = Mathf.Sign(inputJugador.Direccion);
-        }
+        float direccion = (inputJugador.Direccion == 0 || !_enSuelo)
+            ? Mathf.Sign(_velocidadInicialRodar)
+            : Mathf.Sign(inputJugador.Direccion);
 
         _velocidadInicialRodar = Mathf.Sign(direccion) * VelocidadRodar;
         _animatedSprite2D.FlipH = direccion < 0;
@@ -457,14 +449,14 @@ public partial class Jugador : CharacterBody2D
 
     private void CambiarEstadoLocomocion(EstadoLocomocionJugador nuevoEstado)
     {
-        EstadoLocomocionAnterior = EstadoLocomocion;
-
         if (EstadoLocomocion == nuevoEstado)
             return;
 
+        var anterior = EstadoLocomocion;
+        EstadoLocomocionAnterior = anterior;
         EstadoLocomocion = nuevoEstado;
 
-        OnEstadoLocomocionChanged(EstadoLocomocionAnterior, nuevoEstado);
+        OnEstadoLocomocionChanged(anterior, nuevoEstado);
     }
 
     private void EvaluarEstadoLocomocion()
@@ -589,7 +581,7 @@ public partial class Jugador : CharacterBody2D
 
     private void ActualizarAnimacionRodando()
     {
-        if (_rodandoAnterior)
+        if (_rodandoIniciado)
             ReproducirAnimacion(AnimacionJugador.Rodando, true);
         else
             ReproducirAnimacion(AnimacionJugador.Rodar, true);
@@ -609,37 +601,70 @@ public partial class Jugador : CharacterBody2D
     }
     public async void OnMuerte()
     {
-        if (Muerto)
+        if (DesactivarFisicas)
             return;
 
-        Muerto = true;
-        this.Velocity = Vector2.Zero;
-        this.Rodando = false;
+        MarcarComoMuerto();
+        await EjecutarAnimacionMuerte();
+        Revivir();
+    }
+
+    private void MarcarComoMuerto()
+    {
+        DesactivarFisicas = true;
+        Velocity = Vector2.Zero;
+        Rodando = false;
+    }
+
+    private async Task EjecutarAnimacionMuerte()
+    {
+        // Reparentamos la cámara al escenario para mantener su posición durante la animación.
+        Node padreJugador = GetParent();
+        Vector2 posicionGlobalCamara = _camera2D.GlobalPosition;
+        _camera2D.Reparent(padreJugador);
+        _camera2D.GlobalPosition = posicionGlobalCamara;
 
         ReproducirAnimacion(AnimacionJugador.MuerteEnCaida);
 
-        await this.ToSignal(this.GetTree(), SceneTree.SignalName.ProcessFrame);
+        await ToSignal(GetTree().CreateTimer(0.5f), Timer.SignalName.Timeout);
 
-        // Efecto Mario: arco hacia arriba luego caída libre
-        float tiempoTotal = 1.5f;
-        float velocidadInicial = -400f; // negativo = arriba en Godot
-        float gravedad = 600f;
-        float tiempo = 0f;
-        Vector2 posInicial = Position;
+        Tween tween = AnimacionMuerte();
+        await ToSignal(tween, Tween.SignalName.Finished);
+    }
 
-        while (tiempo < tiempoTotal)
-        {
-            float dt = (float)this.GetProcessDeltaTime();
-            tiempo += dt;
+    private Tween AnimacionMuerte()
+    {
+        Vector2 posicionInicial = Position;
+        Vector2 posicionApex = posicionInicial - new Vector2(0, DISTANCIA_SUPERIOR_ANIMACION_MUERTE);
+        Vector2 posicionFinal = posicionInicial + new Vector2(0, DISTANCIA_FINAL_ANIMACION_MUERTE);
 
-            float y = posInicial.Y + velocidadInicial * tiempo + 0.5f * gravedad * tiempo * tiempo;
-            Position = new Vector2(posInicial.X, y);
+        float duracionSubida = DISTANCIA_SUPERIOR_ANIMACION_MUERTE / VELOCIDAD_SUBIDA_MUERTE;
+        float duracionBajada = DISTANCIA_FINAL_ANIMACION_MUERTE / VELOCIDAD_BAJADA_MUERTE;
 
-            await this.ToSignal(this.GetTree(), SceneTree.SignalName.ProcessFrame);
-        }
+        Tween tween = CreateTween();
+        tween.SetProcessMode(Tween.TweenProcessMode.Idle);
 
-        // Reposicionar y revivir
+        tween.TweenProperty(this, "position", posicionApex, duracionSubida)
+             .SetEase(Tween.EaseType.Out)
+             .SetTrans(Tween.TransitionType.Quad);
+
+        tween.TweenProperty(this, "position", posicionFinal, duracionBajada)
+             .SetEase(Tween.EaseType.In)
+             .SetTrans(Tween.TransitionType.Quad);
+
+        return tween;
+    }
+
+    private void Revivir()
+    {
+        // Movemos el jugador al últimpo punto de Spawn.
         Position = PuntoSpawn.Position;
-        Muerto = false;
+
+        // Devolvemos la cámara al jugador, ahora ya en el punto de spawn.
+        _camera2D.Reparent(this);
+        _camera2D.Position = Vector2.Zero;
+
+        // Devolvemos el estado de muerto a false.
+        DesactivarFisicas = false;
     }
 }

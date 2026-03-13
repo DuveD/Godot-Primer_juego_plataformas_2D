@@ -11,7 +11,7 @@ load_path = "res://.godot/imported/plataformas.png-3f5f873ae9bf4fe95e0329466436a
 size = Vector2(32, 0.5)
 
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_a5xcf"]
-size = Vector2(32, 0.5)
+size = Vector2(32, 1)
 
 [node name="PlataformaMovil" type="AnimatableBody2D" unique_id=529609543]
 position = Vector2(16, 4.5)
@@ -34,5 +34,5 @@ one_way_collision = true
 [node name="SensorJugador" type="Area2D" parent="." unique_id=912158850]
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="SensorJugador" unique_id=366910657]
-position = Vector2(0, -8.25)
+position = Vector2(0, -8.5)
 shape = SubResource("RectangleShape2D_a5xcf")
