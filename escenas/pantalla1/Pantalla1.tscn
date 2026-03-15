@@ -6,6 +6,7 @@
 [ext_resource type="PackedScene" uid="uid://b0652biokeqhd" path="res://escenas/pantalla1/PlataformaMovil.tscn" id="4_hgoh6"]
 [ext_resource type="Script" uid="uid://k855hb1kyd1x" path="res://escenas/pantalla1/ZonaMuerte.cs" id="5_ak48n"]
 [ext_resource type="PackedScene" uid="uid://dpqxpve5euv4d" path="res://escenas/pantalla1/PuntoControl.tscn" id="5_ilur8"]
+[ext_resource type="PackedScene" uid="uid://bbabgv20g0cy3" path="res://escenas/entidades/enemigos/slime/Slime.tscn" id="7_aklpc"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_k2xlr"]
 texture = ExtResource("2_pa6up")
@@ -144,6 +145,7 @@ texture = ExtResource("2_pa6up")
 
 [sub_resource type="TileSet" id="TileSet_itltq"]
 physics_layer_0/collision_layer = 1
+physics_layer_0/collision_mask = 0
 sources/0 = SubResource("TileSetAtlasSource_k2xlr")
 sources/1 = SubResource("TileSetAtlasSource_pa6up")
 sources/2 = SubResource("TileSetAtlasSource_hgoh6")
@@ -154,7 +156,7 @@ size = Vector2(16, 0.5)
 [sub_resource type="RectangleShape2D" id="RectangleShape2D_hgoh6"]
 size = Vector2(16, 0.5)
 
-[sub_resource type="RectangleShape2D" id="RectangleShape2D_ilur8"]
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_aklpc"]
 size = Vector2(3760, 610)
 
 [node name="Pantalla1" type="Node2D" unique_id=787986626]
@@ -166,16 +168,19 @@ offset_top = -864.0
 offset_right = 2300.4443
 offset_bottom = 1168.0
 texture = ExtResource("1_ak48n")
+metadata/_edit_lock_ = true
 
 [node name="PuntoSpawnInicial" type="Marker2D" parent="." unique_id=1162242194]
 position = Vector2(-216, -80)
 
-[node name="Jugador" parent="." unique_id=892271509 instance=ExtResource("1_x781s")]
+[node name="Jugador" parent="." unique_id=892271509 node_paths=PackedStringArray("PuntoSpawn") instance=ExtResource("1_x781s")]
 position = Vector2(-216, -80)
 slide_on_ceiling = false
+PuntoSpawn = NodePath("../PuntoSpawnInicial")
 
 [node name="Camera2D" type="Camera2D" parent="Jugador" unique_id=706114990]
 position = Vector2(0, -8)
+ignore_rotation = false
 zoom = Vector2(3, 3)
 limit_smoothed = true
 position_smoothing_speed = 4.0
@@ -346,48 +351,6 @@ z_index = 10
 tile_map_data = PackedByteArray("AAD9//r/AgACAAUAAAD9//v/AgACAAYAAAD+//r/AgADAAUAAAD+//v/AgADAAYAAAD///r/AgAEAAUAAAD///v/AgAEAAYAAAAAAPn/AgACAAUAAAAAAPr/AgACAAYAAAABAPn/AgADAAUAAAABAPr/AgADAAYAAAACAPn/AgAEAAUAAAACAPr/AgAEAAYAAAD9//n/AgACAAQAAAD+//n/AgADAAQAAAD///n/AgAEAAQAAAAAAPj/AgACAAQAAAABAPj/AgADAAQAAAACAPj/AgAEAAQAAAABAPv/AgADAAcAAAD+//z/AgADAAgAAAA=")
 tile_set = SubResource("TileSet_itltq")
 
-[node name="PlataformaCaida1" parent="." unique_id=303786946 instance=ExtResource("4_hgoh6")]
-position = Vector2(512, 248)
-Caida = true
-
-[node name="Sprite2D" parent="PlataformaCaida1" index="0" unique_id=649151839]
-region_rect = Rect2(16, 16.28695, 32, 8.713051)
-
-[node name="PlataformaCaida6" parent="." unique_id=543255565 instance=ExtResource("4_hgoh6")]
-position = Vector2(528, 296)
-Caida = true
-
-[node name="Sprite2D" parent="PlataformaCaida6" index="0" unique_id=649151839]
-region_rect = Rect2(16, 16, 32, 9)
-
-[node name="PlataformaCaida7" parent="." unique_id=1188490566 instance=ExtResource("4_hgoh6")]
-position = Vector2(544, 344)
-Caida = true
-
-[node name="Sprite2D" parent="PlataformaCaida7" index="0" unique_id=649151839]
-region_rect = Rect2(16, 16, 32, 9)
-
-[node name="PlataformaCaida8" parent="." unique_id=940612208 instance=ExtResource("4_hgoh6")]
-position = Vector2(528, 392)
-Caida = true
-
-[node name="Sprite2D" parent="PlataformaCaida8" index="0" unique_id=649151839]
-region_rect = Rect2(16, 16, 32, 9)
-
-[node name="PlataformaCaida9" parent="." unique_id=1419186780 instance=ExtResource("4_hgoh6")]
-position = Vector2(512, 440)
-Caida = true
-
-[node name="Sprite2D" parent="PlataformaCaida9" index="0" unique_id=649151839]
-region_rect = Rect2(16, 16.28695, 32, 8.713051)
-
-[node name="PlataformaCaida10" parent="." unique_id=1001336036 instance=ExtResource("4_hgoh6")]
-position = Vector2(528, 488)
-Caida = true
-
-[node name="Sprite2D" parent="PlataformaCaida10" index="0" unique_id=649151839]
-region_rect = Rect2(16, 16.28695, 32, 8.713051)
-
 [node name="PuntoControl" parent="." unique_id=1696714220 instance=ExtResource("5_ilur8")]
 position = Vector2(1000, 32)
 
@@ -396,19 +359,18 @@ position = Vector2(-216, 0)
 
 [node name="ZonaMuerte" type="Area2D" parent="." unique_id=1496392188]
 position = Vector2(568, 871)
+collision_layer = 0
+collision_mask = 2
 script = ExtResource("5_ak48n")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="ZonaMuerte" unique_id=1366608334]
-shape = SubResource("RectangleShape2D_ilur8")
+shape = SubResource("RectangleShape2D_aklpc")
+
+[node name="Slime" parent="." unique_id=1969950463 instance=ExtResource("7_aklpc")]
+position = Vector2(336, 240)
 
 [editable path="PlataformaMovil2"]
 [editable path="PlataformaCaida4"]
 [editable path="PlataformaCaida3"]
 [editable path="PlataformaCaida2"]
 [editable path="PlataformaCaida5"]
-[editable path="PlataformaCaida1"]
-[editable path="PlataformaCaida6"]
-[editable path="PlataformaCaida7"]
-[editable path="PlataformaCaida8"]
-[editable path="PlataformaCaida9"]
-[editable path="PlataformaCaida10"]

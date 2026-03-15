@@ -1,5 +1,7 @@
+using System;
 using System.Threading.Tasks;
 using Godot;
+using PrimerjuegoPlataformas2D.escenas.entidades.enemigos.slime;
 
 namespace PrimerjuegoPlataformas2D.escenas.entidades.jugador;
 
@@ -11,15 +13,17 @@ public partial class Jugador : CharacterBody2D
     public Area2D SensorSuelo;
     private Camera2D _camera2D;
     public SistemaPlataformas SistemaPlataformas;
+    public Area2D HitBox;
     #endregion
 
     #region Spawn
-    [Export]
-    public Marker2D PuntoSpawn = null;
+    [Export] public Marker2D PuntoSpawn;
     #endregion
 
     #region Físicas
     public float Gravedad = (float)ProjectSettings.GetSetting("physics/2d/default_gravity");
+
+    private int _direccion = 1;
 
     [Export]
     public float VELOCIDAD = 130f;
@@ -90,7 +94,8 @@ public partial class Jugador : CharacterBody2D
     #endregion
 
     #region Rodar
-    [Export] public float VelocidadRodar = 200f;
+    [Export]
+    public float VELOCIDAD_RODAR = 200f;
 
     private int _framesRodando = 0;
     private const int FRAMES_RODAR = 16;
@@ -118,7 +123,7 @@ public partial class Jugador : CharacterBody2D
     #region Inputs
     private struct InputJugador
     {
-        public float Direccion;
+        public int Direccion;
         public bool SaltoPresionado;
         public bool SaltoMantenido;
         public bool Rodar;
@@ -141,6 +146,9 @@ public partial class Jugador : CharacterBody2D
         this.CollisionShape2D = GetNode<CollisionShape2D>("CollisionShape2D");
         this.SensorSuelo = GetNode<Area2D>("SensorSuelo");
         this._camera2D = GetNode<Camera2D>("Camera2D");
+        this.HitBox = GetNode<Area2D>("HitBox");
+
+        HitBox.BodyEntered += OnBodyEntered;
 
         this.SistemaPlataformas = new SistemaPlataformas(this);
         AddChild(SistemaPlataformas);
@@ -181,7 +189,7 @@ public partial class Jugador : CharacterBody2D
     {
         return new InputJugador
         {
-            Direccion = Input.GetAxis("ui_left", "ui_right"),
+            Direccion = (int)Input.GetAxis("ui_left", "ui_right"),
             SaltoPresionado = Input.IsActionJustPressed("ui_accept"),
             SaltoMantenido = Input.IsActionPressed("ui_accept"),
             Rodar = Input.IsActionJustPressed("rodar"),
@@ -203,21 +211,6 @@ public partial class Jugador : CharacterBody2D
             _jumpBufferFrames = MAX_JUMP_BUFFER;
         else if (_jumpBufferFrames > 0)
             _jumpBufferFrames--;
-    }
-
-    public EstadoLocomocionJugador CalcularEstadoLocomocion()
-    {
-        if (_enSuelo)
-        {
-            return EstadoLocomocionJugador.EnSuelo;
-        }
-
-        if (Velocity.Y < 0)
-        {
-            return EstadoLocomocionJugador.Saltando;
-        }
-
-        return EstadoLocomocionJugador.Cayendo;
     }
 
     private Vector2 GestionarMovimientoVertical(double delta, Vector2 velocidad, InputJugador inputJugador)
@@ -352,7 +345,10 @@ public partial class Jugador : CharacterBody2D
         velocidad = AplicarAceleracionHorizontal(delta, velocidad, inputJugador);
 
         if (velocidad.X != 0)
+        {
             _animatedSprite2D.FlipH = velocidad.X < 0;
+            _direccion = Mathf.Sign(velocidad.X);
+        }
 
         return velocidad;
     }
@@ -364,7 +360,7 @@ public partial class Jugador : CharacterBody2D
         if (_enSuelo && inputJugador.Rodar)
         {
             if (!Rodando)
-                IniciarRodar();
+                IniciarRodar(inputJugador);
             else
                 CambioDireccionRodar(velocidad, inputJugador);
         }
@@ -391,11 +387,12 @@ public partial class Jugador : CharacterBody2D
             Rodando = false;
     }
 
-    private void IniciarRodar()
+    private void IniciarRodar(InputJugador inputJugador)
     {
         Rodando = true;
         _rodandoIniciado = false;
-        _velocidadInicialRodar = ObtenerDireccionActual() * VelocidadRodar;
+        int direccion = inputJugador.Direccion != 0 ? inputJugador.Direccion : _direccion;
+        _velocidadInicialRodar = direccion * VELOCIDAD_RODAR;
         _framesRodando = FRAMES_RODAR;
     }
 
@@ -414,18 +411,14 @@ public partial class Jugador : CharacterBody2D
     {
         _rodandoIniciado = true;
 
-        float direccion = (inputJugador.Direccion == 0 || !_enSuelo)
+        int direccion = (inputJugador.Direccion == 0 || !_enSuelo)
             ? Mathf.Sign(_velocidadInicialRodar)
             : Mathf.Sign(inputJugador.Direccion);
 
-        _velocidadInicialRodar = Mathf.Sign(direccion) * VelocidadRodar;
+        _velocidadInicialRodar = direccion * VELOCIDAD_RODAR;
         _animatedSprite2D.FlipH = direccion < 0;
+        _direccion = direccion;
         _framesRodando = FRAMES_RODAR;
-    }
-
-    private float ObtenerDireccionActual()
-    {
-        return _animatedSprite2D.FlipH ? -1f : 1f;
     }
 
     private Vector2 AplicarAceleracionHorizontal(double delta, Vector2 velocidad, InputJugador inputJugador)
@@ -447,18 +440,6 @@ public partial class Jugador : CharacterBody2D
         return velocidad;
     }
 
-    private void CambiarEstadoLocomocion(EstadoLocomocionJugador nuevoEstado)
-    {
-        if (EstadoLocomocion == nuevoEstado)
-            return;
-
-        var anterior = EstadoLocomocion;
-        EstadoLocomocionAnterior = anterior;
-        EstadoLocomocion = nuevoEstado;
-
-        OnEstadoLocomocionChanged(anterior, nuevoEstado);
-    }
-
     private void EvaluarEstadoLocomocion()
     {
         _enSuelo = IsOnFloor();
@@ -476,8 +457,36 @@ public partial class Jugador : CharacterBody2D
         CambiarEstadoLocomocion(nuevoEstado);
     }
 
+    public EstadoLocomocionJugador CalcularEstadoLocomocion()
+    {
+        if (_enSuelo)
+        {
+            return EstadoLocomocionJugador.EnSuelo;
+        }
+
+        if (Velocity.Y < 0)
+        {
+            return EstadoLocomocionJugador.Saltando;
+        }
+
+        return EstadoLocomocionJugador.Cayendo;
+    }
+
+    private void CambiarEstadoLocomocion(EstadoLocomocionJugador nuevoEstado)
+    {
+        if (EstadoLocomocion == nuevoEstado)
+            return;
+
+        var anterior = EstadoLocomocion;
+        EstadoLocomocionAnterior = anterior;
+        EstadoLocomocion = nuevoEstado;
+
+        OnEstadoLocomocionChanged(anterior, nuevoEstado);
+    }
+
     private void OnEstadoLocomocionChanged(EstadoLocomocionJugador anterior, EstadoLocomocionJugador actual)
     {
+        // Cambios de estados compuestos.
         if (anterior == EstadoLocomocionJugador.Cayendo &&
             actual == EstadoLocomocionJugador.EnSuelo)
         {
@@ -488,6 +497,7 @@ public partial class Jugador : CharacterBody2D
         {
             OnDespegar();
         }
+        // Cambios de estados simples.
         else
         {
             switch (actual)
@@ -587,19 +597,20 @@ public partial class Jugador : CharacterBody2D
             ReproducirAnimacion(AnimacionJugador.Rodar, true);
     }
 
-    private void ReproducirAnimacion(AnimacionJugador animacionJugador, bool forzarReproducir = false)
+    private void ReproducirAnimacion(AnimacionJugador animacion, bool forzarReproducir = false)
     {
-        if (_animatedSprite2D.Animation == animacionJugador.Nombre && !forzarReproducir)
+        if (_animatedSprite2D.Animation == animacion.Nombre && !forzarReproducir)
             return;
 
-        _animatedSprite2D.Play(animacionJugador.Nombre);
+        _animatedSprite2D.Play(animacion.Nombre);
     }
 
     public void InformarPuntoSpawn(Marker2D marker2D)
     {
         this.PuntoSpawn = marker2D;
     }
-    public async void OnMuerte()
+
+    public async void Muerte()
     {
         if (DesactivarFisicas)
             return;
@@ -667,4 +678,18 @@ public partial class Jugador : CharacterBody2D
         // Devolvemos el estado de muerto a false.
         DesactivarFisicas = false;
     }
+
+    private void OnBodyEntered(Node2D body)
+    {
+        if (body is Slime)
+        {
+            this.CallDeferred(nameof(OnBodyEnteredSlime));
+        }
+    }
+
+    private void OnBodyEnteredSlime()
+    {
+        this.Muerte();
+    }
+
 }
